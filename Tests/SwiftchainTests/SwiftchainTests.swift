@@ -10,112 +10,115 @@ import CoreGraphics
 @testable import Swiftchain
 import XCTest
 
-/// An `extension` for `CGPoint`.
-extension CGPoint: Hashable {
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(x)
-        hasher.combine(y)
-    }
-}
-
 /// A `class` defining common `Keychain` tests.
 final class SwiftchainTests: XCTestCase {
-    /// A valid `String`.
-    let key = "key"
-
-    /// Remove all.
-    override class func setUp() {
-        super.setUp()
-        try? Keychain.default.removeAll()
-    }
+    /// The underlying keychain container.
+    let container: Keychain.Container = {
+        // Empty out everything before starting.
+        try? Keychain.default.empty()
+        // Return `Container`.
+        return Keychain.default.container(for: "id")
+    }()
 
     /// Test `Keychain` setters and getters for common instance types.
-    func testBool() {
+    func testBool() throws {
         // Prepare values.
         let value = true
         // Test.
-        try? Keychain.default.set(value, forKey: key)
-        XCTAssert((try? Keychain.default.get(forKey: key)) == value)
+        try container.store(value)
+        XCTAssert(try container.fetch() == value)
+        XCTAssert(!container.isEmpty)
     }
 
     /// Test `Keychain` setters and getters for common instance types.
-    func testCGFloat() {
+    func testCGFloat() throws {
         // Prepare values.
         let value: CGFloat = 2.3
         // Test.
-        try? Keychain.default.set(value, forKey: key)
-        XCTAssert((try? Keychain.default.get(forKey: key)) == value)
+        try container.store(value)
+        XCTAssert(try container.fetch() == value)
+        XCTAssert(!container.isEmpty)
     }
 
     /// Test `Keychain` setters and getters for common instance types.
-    func testCGPoint() {
+    func testCGPoint() throws {
         // Prepare values.
         let value = CGPoint(x: 1.2, y: 3.1)
         // Test.
-        try? Keychain.default.set(value, forKey: key)
-        XCTAssert((try? Keychain.default.get(forKey: key)) == value)
+        try container.store(value)
+        XCTAssert(try container.fetch() == value)
+        XCTAssert(!container.isEmpty)
     }
 
     /// Test `Keychain` setters and getters for common instance types.
-    func testData() {
+    func testData() throws {
         // Prepare values.
         let value = "somevalue".data(using: .utf8)!
         // Test.
-        try? Keychain.default.set(value, forKey: key)
-        XCTAssert((try? Keychain.default.get(forKey: key)) == value)
+        try container.store(value)
+        XCTAssert(try container.fetch() == value)
+        XCTAssert(!container.isEmpty)
     }
 
     /// Test `Keychain` setters and getters for common instance types.
-    func testDouble() {
+    func testDouble() throws {
         // Prepare values.
         let value: Double = 2.3
         // Test.
-        try? Keychain.default.set(value, forKey: key)
-        XCTAssert((try? Keychain.default.get(forKey: key)) == value)
+        try container.store(value)
+        XCTAssert(try container.fetch() == value)
+        XCTAssert(!container.isEmpty)
     }
 
     /// Test `Keychain` setters and getters for common instance types.
-    func testInt() {
+    func testInt() throws {
         // Prepare values.
         let value: Int = 1
         // Test.
-        try? Keychain.default.set(value, forKey: key)
-        XCTAssert((try? Keychain.default.get(forKey: key)) == value)
+        try container.store(value)
+        XCTAssert(try container.fetch() == value)
+        XCTAssert(!container.isEmpty)
     }
 
     /// Test `Keychain` setters and getters for common instance types.
-    func testFloat() {
+    func testFloat() throws {
         // Prepare values.
         let value: Float = 321.6
         // Test.
-        try? Keychain.default.set(value, forKey: key)
-        XCTAssert((try? Keychain.default.get(forKey: key)) == value)
+        try container.store(value)
+        XCTAssert(try container.fetch() == value)
+        XCTAssert(!container.isEmpty)
     }
 
     /// Test `Keychain` setters and getters for common instance types.
-    func testString() {
+    func testString() throws {
         // Prepare values.
         let value = "somevalue"
         // Test.
-        try? Keychain.default.set(value, forKey: key)
-        XCTAssert((try? Keychain.default.get(forKey: key)) == value)
+        try container.store(value)
+        XCTAssert(try container.fetch() == value)
+        XCTAssert(!container.isEmpty)
     }
 
     /// Test removal.
-    func testRemove() {
+    func testRemove() throws {
         // Check for all keys.
-        let keys = (try? Keychain.default.allKeys()) ?? []
-        XCTAssert(keys.contains(key))
+        XCTAssert(!self.container.isEmpty)
+        let keys = try Keychain.default.containers()
+        XCTAssert(keys.contains(where: { $0.key == self.container.key }))
         XCTAssert(keys.count == 1)
         // Remove previously set values.
-        XCTAssert(Keychain.default.contains(key: key))
-        try? Keychain.default.remove(matchingKey: key)
-        XCTAssert(!Keychain.default.contains(key: key))
+        XCTAssert(!self.container.isEmpty)
+        try self.container.empty()
+        XCTAssert(self.container.isEmpty)
         // Prepare to remove all.
-        try? Keychain.default.set(2, forKey: "two")
-        XCTAssert(Keychain.default.contains(key: "two"))
-        try? Keychain.default.removeAll()
-        XCTAssert(!Keychain.default.contains(key: key))
+        let container = Keychain.default.container(for: "two")
+        XCTAssert(container.isEmpty)
+        try container.store(2)
+        XCTAssert(!container.isEmpty)
+        let value: Int? = try container.drop()
+        XCTAssert(value == 2)
+        XCTAssert(container.isEmpty)
     }
 }
 #endif

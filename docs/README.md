@@ -2,8 +2,7 @@
 [![Swift](https://img.shields.io/badge/Swift-5.0-%23DE5C43?style=flat&logo=swift)](https://swift.org)
 [![codecov](https://codecov.io/gh/sbertix/Swiftchain/branch/main/graph/badge.svg)](https://codecov.io/gh/sbertix/Swiftchain)
 
-**Swiftchain** is a Keychain wrapper written entirely in **Swift**, in order to simplify access and usage to a safe and secure storage. 
-Anyone relying on `UserDefaults` should be comfortable with this library. 
+**Swiftchain** is a lightweight Keychain wrapper written entirely in **Swift**, simplifying access to a safe and secure form of storage.  
 
 <br/>
 
@@ -14,6 +13,8 @@ Anyone relying on `UserDefaults` should be comfortable with this library.
 ## Status
 ![Test](https://github.com/sbertix/Swiftchain/workflows/test/badge.svg)
 [![GitHub tag (latest by date)](https://img.shields.io/github/v/tag/sbertix/Swiftchain)](https://github.com/sbertix/Swiftchain/wiki)
+
+<br />
 
 > What's next?
 
@@ -28,6 +29,8 @@ Just remember to refer to our [guidelines](CONTRIBUTING.md) and [Code of Conduct
 1. Paste `https://github.com/sbertix/Swifthcain.git`.
 1. Follow the steps.
 
+<br />
+
 > Why not CocoaPods, or Carthage, or ~blank~?
 
 Supporting multiple _dependency managers_ makes maintaining a library exponentially more complicated and time consuming.\
@@ -38,20 +41,23 @@ Furthermore, with the integration of the **Swift Package Manager** in **Xcode 11
 With the creation of a  `Keychain` instance, a _service name_ is associated to any value safely stored in your device keychain. 
 This defaults to your bundle identifier, if it exists, or a constant string you can exepct not to change in future versions, otherwise. 
 
-You might need to share your keychain items between apps, in that case you need an _access group_ and share it among them. 
+You might need to share your keychain items between apps: in that case just share the same _access group_ among them. 
 
-Furthermore, by default, all stored items, can only be accessed when the device is unlocked, but you can simply select a new default `Keychain.Accessibility` type when `init`-iating the `Keychain` or by temporarily referring to a new one in specific methods.  
-Same goes for iCloud synchronization. Out-of-the-box all items are not shared to the cloud, but it's quick and easy to change this setting. 
+Furthermore, by default, all stored items, can only be accessed when the device is unlocked, but you can simply select a new default `Keychain.Accessibility` type when `init`-iating the `Keychain`, together with an iCloud synchronization rule: out-of-the-box nothing is shared to the cloud.   
 
 ```swift
 // You can either call a shared instance…
 var keychain = Keychain.default
 // … or create your own!
-keychain = Keychain(service: "com.sbertix.custom", 
-                    group: "com.sbertix.group", 
-                    accessibility: .afterFirstUnlock,
-                    isSynchronizable: true)
+keychain = Keychain(service: "com.sbertix.custom",      // Optional.
+                    group: "com.sbertix.group",         // Optional.
+                    accessibility: .afterFirstUnlock,   // Optional.
+                    isSynchronizable: true)             // Optional.
 ```
+
+<br />
+
+> How about storing and retreiving items?
 
 And then just start storing and retreiving your items!
 
@@ -60,26 +66,35 @@ let username: String = /* some String */
 let password: String = /* some String */
 
 // Store the password.
-try? keychain.set(password, forKey: username)
+try? keychain.container(for: username).store(password)
 
 /* later */
 
+let container = keychain.container(for: username)
 // Retrieve the password.
-let secret = try? keychain.get(String.self, forKey: username)
+let secret = try? container.fetch(String.self)
 // Or even simpler, if it's unambiguous.
-let string: String? = try? keychain.get(forKey: username)
+let string: String? = try? container.fetch(username)
 ```
 
 Please keep in mind, you **cannot** modify accessibility or synchronization options for a given item, without removing it first. 
 
 ```swift
-// Remove it first.
-try? keychain.remove(matchingKey: username)
-// Save it again.
-try? keychain.set(password, 
-                  forKey: username, 
-                  accessible: .afterFirstUnlockThisDeviceOnly,
-                  isSynchronizable: false)
+// Empty the container.
+try? container.empty()
+// Store it again…
+```
+
+<br />
+
+> Can I override the default `Keychain` when only relying on different settings, for instance?
+
+Sure.
+
+```swift
+// Just set a new one.
+Keychain.default = Keychain(accessibility: .afterFirstUnlock,
+                            isSynchronizable: true)
 ```
 
 ## Special thanks
