@@ -17,10 +17,22 @@ open class Keychain {
 
     /// The underlying service name. Defaults to the bundle identifier or `"Swiftchain"`, if `nil`.
     public let service: String
+
     /// The underlying access group. Defaults to `nil`.
     public let group: String?
+
     /// The underlying accessibility preference. Defaults to `.afterFirstUnlock`.
+    ///
+    /// - note: Visit https://developer.apple.com/documentation/security/keychain_services/keychain_items/restricting_keychain_item_accessibility
+    ///         to learn more about _accessibility_, and its relation to _authentication_..
     public let accessibility: Accessibility
+
+    /// An optional underlying authentication preference. Defaults to empty.
+    ///
+    /// - note: Visit https://developer.apple.com/documentation/security/keychain_services/keychain_items/restricting_keychain_item_accessibility
+    ///         to learn more about _authentication_, and its relation to _accessibility_..
+    public let authentication: Authentication
+
     /// The underlying synchronization preference. Defaults to `false`.
     public let isSynchronizable: Bool
 
@@ -30,14 +42,17 @@ open class Keychain {
     ///     - service: A valid `String` representing the service name for the keychain. Defaults to the bundle identifier or `"Swiftchain"`, if `nil`.
     ///     - group: An optional `String` defining a custom access group, allowing items to be shared among apps. Defaults to `nil`.
     ///     - accessibility: Some valid `Accessibility`. Defaults to `.whenUnlocked`.
+    ///     - authentication: Some optional `Authentication`. Defaults to `nil`.
     ///     - isSynchronizable: A valid `Bool` defining whether items should be stored on iCloud or not. Defaults to `false`.
     public required init(service: String = Bundle.main.bundleIdentifier ?? "Swiftchain",
                          group: String? = nil,
                          accessibility: Accessibility = .whenUnlocked,
+                         authentication: Authentication = [],
                          isSynchronizable: Bool = false) {
         self.service = service
         self.group = group
         self.accessibility = accessibility
+        self.authentication = authentication
         self.isSynchronizable = isSynchronizable
     }
 
@@ -87,10 +102,8 @@ open class Keychain {
         guard let results = result as? [[AnyHashable: Any]] else { throw Error.invalidCasting }
         // Return results.
         return results.reduce(into: Set<String>()) { set, attributes in
-            guard let data = (attributes[SecurityConstants.generic] as? Data)
-                    ?? (attributes[SecurityConstants.account] as? Data),
-                  let key = String(data: data, encoding: .utf8) else { return }
-            set.insert(key)
+            guard let key = attributes[SecurityConstants.account] as? String else { return }
+            set.insert(key as String)
         }
     }
 

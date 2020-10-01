@@ -5,20 +5,22 @@
 //  Created by Stefano Bertagno on 30/09/20.
 //
 
+@testable import Swiftchain
+
 #if os(macOS)
 import CoreGraphics
-@testable import Swiftchain
 import XCTest
 
 /// A `class` defining common `Keychain` tests.
 final class SwiftchainTests: XCTestCase {
     /// The underlying keychain container.
-    let container: Keychain.Container = {
-        // Empty out everything before starting.
-        try? Keychain.default.empty()
-        // Return `Container`.
-        return Keychain.default.container(for: "id")
-    }()
+    let container: Keychain.Container = Keychain.default.container(for: "id")
+
+    /// Setup testing.
+    override func setUpWithError() throws {
+        try super.setUpWithError()
+        try Keychain.default.empty()
+    }
 
     /// Test `Keychain` setters and getters for common instance types.
     func testBool() throws {
@@ -102,23 +104,32 @@ final class SwiftchainTests: XCTestCase {
 
     /// Test removal.
     func testRemove() throws {
-        // Check for all keys.
-        XCTAssert(!self.container.isEmpty)
-        let keys = try Keychain.default.containers()
-        XCTAssert(keys.contains(where: { $0.key == self.container.key }))
-        XCTAssert(keys.count == 1)
-        // Remove previously set values.
-        XCTAssert(!self.container.isEmpty)
-        try self.container.empty()
-        XCTAssert(self.container.isEmpty)
-        // Prepare to remove all.
-        let container = Keychain.default.container(for: "two")
         XCTAssert(container.isEmpty)
         try container.store(2)
         XCTAssert(!container.isEmpty)
+        // Check for all keys.
+        let containers = try Keychain.default.containers()
+        XCTAssert(containers.contains(where: { $0.key == container.key }))
+        // Remove.
         let value: Int? = try container.drop()
         XCTAssert(value == 2)
         XCTAssert(container.isEmpty)
+    }
+
+    /// Test copy.
+    func testCopy() throws {
+        let keychain = Keychain.default
+        let start = keychain.container(for: "start")
+        let end = keychain.container(for: "end")
+        // Copy the item.
+        try start.store(1)
+        try start.copy(to: end)
+        XCTAssert(try start.fetch(Int.self) == end.fetch(Int.self))
+        // Move the item.
+        try start.store(2)
+        try start.move(to: end)
+        XCTAssert(try end.fetch(Int.self) == 2)
+        XCTAssert(start.isEmpty)
     }
 }
 #endif

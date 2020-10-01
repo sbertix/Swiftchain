@@ -43,7 +43,22 @@ This defaults to your bundle identifier, if it exists, or a constant string you 
 
 You might need to share your keychain items between apps: in that case just share the same _access group_ among them. 
 
-Furthermore, by default, all stored items, can only be accessed when the device is unlocked, but you can simply select a new default `Keychain.Accessibility` type when `init`-iating the `Keychain`, together with an iCloud synchronization rule: out-of-the-box nothing is shared to the cloud.   
+By default, all stored items, can only be accessed when the device is unlocked, but you can simply select a new default `Keychain.Accessibility` (and _authorization_) type when `init`-iating the `Keychain`, together with an iCloud synchronization rule: out-of-the-box nothing is shared to the cloud.   
+
+<details><summary><strong>Accessibility</strong> vs <strong>authentication</strong></summary>
+    <p>
+    
+Please refer to the official [Apple documentation](https://developer.apple.com/documentation/security/keychain_services/keychain_items/restricting_keychain_item_accessibility) in order to better understand _accessibility_ and _authentication_. 
+
+> What if I need to access my keychain items in the background?
+
+Change your `accessibility`. For instance, you could use `.afterFirstUnlock`.
+
+> What if I need to make sure biometric authentication is on for the device?
+
+Change your `authentication`. For instance, you could use `.biometricsAny`.
+    </p>
+</details>
 
 ```swift
 // You can either call a shared instance…
@@ -52,6 +67,7 @@ var keychain = Keychain.default
 keychain = Keychain(service: "com.sbertix.custom",      // Optional.
                     group: "com.sbertix.group",         // Optional.
                     accessibility: .afterFirstUnlock,   // Optional.
+                    authentication: .biometryAny,       // Optional.
                     isSynchronizable: true)             // Optional.
 ```
 
@@ -77,12 +93,20 @@ let secret = try? container.fetch(String.self)
 let string: String? = try? container.fetch(username)
 ```
 
-Please keep in mind, you **cannot** modify accessibility or synchronization options for a given item, without removing it first. 
+Please keep in mind, you **cannot** modify accessibility or synchronization options for a given item, without removing it first, but the easiest way is actually copying or moving values accross `Container`s`. 
 
 ```swift
 // Empty the container.
 try? container.empty()
 // Store it again…
+
+/* or */
+// Another container, with some different synchronization or accessibility.
+let anotherContainer: Container = /* some Container */
+// Copy the content of `container` to `anotherContainer`.
+try? container.copy(to: anotherContainer) 
+// Copy the content of `container` to `anotherContainer`, then erase `container`.
+try? container.move(to: anotherContainer)
 ```
 
 <br />

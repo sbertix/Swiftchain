@@ -22,16 +22,29 @@ public extension Keychain {
 
         /// Compute a base keychain query.
         private var query: [CFString: Any] {
-            // Prepare the query for a generic password (rather than a certificate, internet password, etc)
+            // Prepare the query for a generic password.
             var query: [CFString: Any] = [SecurityConstants.class: kSecClassGenericPassword]
             query[SecurityConstants.service] = keychain.service
-            query[SecurityConstants.accessible] = keychain.accessibility.rawValue
             query[SecurityConstants.accessGroup] = keychain.group
-            // Uniquely identify the account who will be accessing the keychain
-            let encodedIdentifier: Data = key.data(using: String.Encoding.utf8)!
-            query[SecurityConstants.generic] = encodedIdentifier
-            query[SecurityConstants.account] = encodedIdentifier
             query[SecurityConstants.synchronizable] = keychain.isSynchronizable ? kCFBooleanTrue : kCFBooleanFalse
+            // Identify the actual container.
+            query[SecurityConstants.account] = key
+            // Consider accessibility and authentication.
+            if !keychain.authentication.isEmpty {
+                var error: Unmanaged<CFError>?
+                query[SecurityConstants.control] = withUnsafeMutablePointer(to: &error) {
+                    SecAccessControlCreateWithFlags(nil,
+                                                    keychain.accessibility.rawValue,
+                                                    keychain.authentication.flags,
+                                                    $0)
+                }
+                // Crash on `Error`.
+                if let error = error?.takeUnretainedValue() {
+                    fatalError("Authentication flags raised an `Error`: \(error)")
+                }
+            } else {
+                query[SecurityConstants.accessible] = keychain.accessibility.rawValue
+            }
             // Return dictionary.
             return query
         }
@@ -56,7 +69,7 @@ public extension Keychain {
             self.key = key
         }
 
-        // MARK: Setters
+        // MARK: Insertion
 
         /// Update the underlying item.
         ///
@@ -72,7 +85,7 @@ public extension Keychain {
                 switch Keychain.locking({ SecItemAdd(query as CFDictionary, nil) }) {
                 case errSecSuccess: break
                 case errSecDuplicateItem: try update(value)
-                case let status: print(status); throw Error.status(status)
+                case let status: throw Error.status(status)
                 }
             default:
                 // Archive `value`.
@@ -99,6 +112,20 @@ public extension Keychain {
             case let status: throw Error.status(status)
             }
         }
+
+        /// Copy the content of `self`, into another `container`.
+        ///
+        /// - parameter container: A valid `Container`.
+        /// - throws: Some `Keychain.Error`.
+        /// - warning: If `self` fetches `nil`, or throws an `Error`, `container` **will be emptied**.
+        public func copy(to container: Container) throws {
+            switch try fetch(Data.self) {
+            case let data?: try container.store(data)
+            default: try container.empty()
+            }
+        }
+
+        // MARK: Deletion
 
         /// Empty container and return former value, if it exists.
         ///
@@ -131,7 +158,21 @@ public extension Keychain {
             }
         }
 
-        // MARK: Getters
+        /// Move the content of `self`, into another `container`.
+        ///
+        /// - parameter container: A valid `Container`.
+        /// - throws: Some `Keychain.Error`.
+        /// - warning: If `self` fetches `nil`, or throws an `Error`, `container` **will be emptied**.
+        public func move(to container: Container) throws {
+            switch try fetch(Data.self) {
+            case let data?: try container.store(data)
+            default: try container.empty()
+            }
+            // Empty `self`.
+            try empty()
+        }
+
+        // MARK: Accessories
 
         /// Fetch the underlying item.
         ///

@@ -95,6 +95,7 @@ identifier_name:
       - tv
       - URL
       - url
+      - or
 
 type_name:
     min_length:
