@@ -19,6 +19,8 @@ enum SecurityConstants {
     static let valueData = kSecValueData
     /// `kSecAttrAccessible`
     static let accessible = kSecAttrAccessible
+    /// `kSecAttrAccessControl`
+    static let control = kSecAttrAccessControl
     /// `kSecClass`
     static let `class` = kSecClass
     /// `kSecAttrService`
