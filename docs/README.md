@@ -14,8 +14,6 @@
 ![Test](https://github.com/sbertix/Swiftchain/workflows/test/badge.svg)
 [![GitHub tag (latest by date)](https://img.shields.io/github/v/tag/sbertix/Swiftchain)](https://github.com/sbertix/Swiftchain/wiki)
 
-<br />
-
 > What's next?
 
 Check out our [milestones](https://github.com/sbertix/Swiftchain/milestones) and [issues](https://github.com/sbertix/Swiftchain/issues).
@@ -29,8 +27,6 @@ Just remember to refer to our [guidelines](CONTRIBUTING.md) and [Code of Conduct
 1. Paste `https://github.com/sbertix/Swifthcain.git`.
 1. Follow the steps.
 
-<br />
-
 > Why not CocoaPods, or Carthage, or ~blank~?
 
 Supporting multiple _dependency managers_ makes maintaining a library exponentially more complicated and time consuming.\
@@ -39,24 +35,24 @@ Furthermore, with the integration of the **Swift Package Manager** in **Xcode 11
 ## Usage
 
 With the creation of a  `Keychain` instance, a _service name_ is associated to any value safely stored in your device keychain. 
-This defaults to your bundle identifier, if it exists, or a constant string you can exepct not to change in future versions, otherwise. 
+This defaults to your bundle identifier, if it exists, or a constant you can expect not to change in future versions, otherwise. 
 
 You might need to share your keychain items between apps: in that case just share the same _access group_ among them. 
 
-By default, all stored items, can only be accessed when the device is unlocked, but you can simply select a new default `Keychain.Accessibility` (and _authorization_) type when `init`-iating the `Keychain`, together with an iCloud synchronization rule: out-of-the-box nothing is shared to the cloud.   
+By default, all stored items, can only be accessed when the device is unlocked, but you can simply select a custom `Keychain.Accessibility` (and _authorization_) type when `init`iating the `Keychain`, together with an iCloud synchronization rule: out-of-the-box nothing is shared to the cloud.   
 
 <details><summary><strong>Accessibility</strong> vs <strong>authentication</strong></summary>
     <p>
     
-Please refer to the official [Apple documentation](https://developer.apple.com/documentation/security/keychain_services/keychain_items/restricting_keychain_item_accessibility) in order to better understand _accessibility_ and _authentication_. 
+Please refer to the official [Apple documentation](https://developer.apple.com/documentation/security/keychain_services/keychain_items/restricting_keychain_item_accessibility) in order to better understand differences between and use cases of _accessibility_ and _authentication_. 
 
-> What if I need to access my keychain items in the background?
+> What if I need to access my keychain items from the background?
 
 Change your `accessibility`. For instance, you could use `.afterFirstUnlock`.
 
 > What if I need to make sure biometric authentication is on for the device?
 
-Change your `authentication`. For instance, you could use `.biometricsAny`.
+Change your `authentication`. For instance, you could use `.biometryAny`.
     </p>
 </details>
 
@@ -75,7 +71,8 @@ keychain = Keychain(service: "com.sbertix.custom",      // Optional.
 
 > How about storing and retreiving items?
 
-And then just start storing and retreiving your items!
+You can safely store and retreive **any** item you want. 
+No constraints on types, conformacies, etc: we deal with all of that for you behind the scenes!
 
 ```swift
 let username: String = /* some String */
@@ -90,19 +87,23 @@ let container = keychain.container(for: username)
 // Retrieve the password.
 let secret = try? container.fetch(String.self)
 // Or even simpler, if it's unambiguous.
-let string: String? = try? container.fetch(username)
+let string: String? = try? container.fetch()
 ```
 
-Please keep in mind, you **cannot** modify accessibility or synchronization options for a given item, without removing it first, but the easiest way is actually copying or moving values accross `Container`s`. 
+Please keep in mind, you **cannot** modify accessibility or synchronization options for a given item, without removing it first, but the easiest way is actually copying or moving values accross `Container`s.
 
 ```swift
-// Empty the container.
-try? container.empty()
-// Store it again…
-
-/* or */
 // Another container, with some different synchronization or accessibility.
 let anotherContainer: Container = /* some Container */
+
+// Empty the container.
+if let data = try? container.drop(Data.self) {
+   // Store it again…
+   try? anotherContainer.store(data)
+}
+
+/* or */
+
 // Copy the content of `container` to `anotherContainer`.
 try? container.copy(to: anotherContainer) 
 // Copy the content of `container` to `anotherContainer`, then erase `container`.
@@ -111,7 +112,7 @@ try? container.move(to: anotherContainer)
 
 <br />
 
-> Can I override the default `Keychain` when only relying on different settings, for instance?
+> Can I override the default `Keychain`?
 
 Sure.
 
