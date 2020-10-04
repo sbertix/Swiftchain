@@ -25,7 +25,7 @@ public extension Keychain {
             // Prepare the query for a generic password.
             var query: [CFString: Any] = [SecurityConstants.class: kSecClassGenericPassword]
             query[SecurityConstants.service] = keychain.service
-            query[SecurityConstants.accessGroup] = keychain.group
+            if let group = keychain.group { query[SecurityConstants.accessGroup] = group }
             query[SecurityConstants.synchronizable] = keychain.isSynchronizable ? kCFBooleanTrue : kCFBooleanFalse
             // Identify the actual container.
             query[SecurityConstants.account] = key
