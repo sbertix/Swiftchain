@@ -13,13 +13,15 @@ import XCTest
 
 /// A `class` defining common `Keychain` tests.
 final class SwiftchainTests: XCTestCase {
+    /// The underlying keychain.
+    let keychain = Keychain(service: "some.service")
     /// The underlying keychain container.
-    let container: Keychain.Container = Keychain.default.container(for: "id")
+    var container: Keychain.Container { keychain.container(for: "id") }
 
     /// Setup testing.
     override func setUpWithError() throws {
         try super.setUpWithError()
-        try Keychain.default.empty()
+        try keychain.empty()
     }
 
     /// Test `Keychain` setters and getters for common instance types.
@@ -108,7 +110,7 @@ final class SwiftchainTests: XCTestCase {
         try container.store(2)
         XCTAssert(!container.isEmpty)
         // Check for all keys.
-        let containers = try Keychain.default.containers()
+        let containers = try keychain.containers()
         XCTAssert(containers.contains(where: { $0.key == container.key }))
         // Remove.
         let value: Int? = try container.drop()
@@ -118,7 +120,6 @@ final class SwiftchainTests: XCTestCase {
 
     /// Test copy.
     func testCopy() throws {
-        let keychain = Keychain.default
         let start = keychain.container(for: "start")
         let end = keychain.container(for: "end")
         // Copy the item.

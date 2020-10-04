@@ -16,7 +16,7 @@ open class Keychain {
     private static let lock = NSLock()
 
     /// The underlying service name. Defaults to the bundle identifier or `"Swiftchain"`, if `nil`.
-    public let service: String
+    public let service: String?
 
     /// The underlying access group. Defaults to `nil`.
     public let group: String?
@@ -44,7 +44,7 @@ open class Keychain {
     ///     - accessibility: Some valid `Accessibility`. Defaults to `.whenUnlocked`.
     ///     - authentication: Some optional `Authentication`. Defaults to `nil`.
     ///     - isSynchronizable: A valid `Bool` defining whether items should be stored on iCloud or not. Defaults to `false`.
-    public required init(service: String = Bundle.main.bundleIdentifier ?? "Swiftchain",
+    public required init(service: String? = Bundle.main.bundleIdentifier ?? "Swiftchain",
                          group: String? = nil,
                          accessibility: Accessibility = .whenUnlocked,
                          authentication: Authentication = [],
@@ -69,9 +69,8 @@ open class Keychain {
     /// - throws: Some `Keychain.Error`.
     public func empty() throws {
         // Prepare query.
-        var query: [CFString: Any] = [SecurityConstants.class: kSecClassGenericPassword]
-        query[SecurityConstants.service] = service
-        if let group = group { query[SecurityConstants.accessGroup] = group }
+        let constants: SecurityConstants = .keychain
+        let query = try constants.query(for: self)
         // Remove items.
         switch Keychain.locking({ SecItemDelete(query as CFDictionary) }) {
         case errSecSuccess, errSecItemNotFound: break
@@ -84,14 +83,9 @@ open class Keychain {
     /// - throws: Some `Keychain.Error`.
     /// - returns: A set of `String`s.
     public func keys() throws -> Set<String> {
-        // Prepare the query.
-        var query: [CFString: Any] = [
-            SecurityConstants.class: kSecClassGenericPassword,
-            SecurityConstants.service: service,
-            SecurityConstants.attributes: kCFBooleanTrue!,
-            SecurityConstants.matchLimit: kSecMatchLimitAll
-        ]
-        if let group = group { query[SecurityConstants.accessGroup] = group }
+        // Prepare query.
+        let constants: SecurityConstants = [.keychain, .attributes, .all]
+        let query = try constants.query(for: self)
         // Fetch results.
         var result: AnyObject?
         switch Keychain.locking({ withUnsafeMutablePointer(to: &result) { SecItemCopyMatching(query as CFDictionary, $0) }}) {
@@ -102,7 +96,7 @@ open class Keychain {
         guard let results = result as? [[AnyHashable: Any]] else { throw Error.invalidCasting }
         // Return results.
         return results.reduce(into: Set<String>()) { set, attributes in
-            guard let key = attributes[SecurityConstants.account] as? String else { return }
+            guard let key = attributes[kSecAttrAccount] as? String else { return }
             set.insert(key as String)
         }
     }
