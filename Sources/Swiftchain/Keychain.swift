@@ -71,7 +71,7 @@ open class Keychain {
         // Prepare query.
         var query: [CFString: Any] = [SecurityConstants.class: kSecClassGenericPassword]
         query[SecurityConstants.service] = service
-        query[SecurityConstants.accessGroup] = group
+        if let group = group { query[SecurityConstants.accessGroup] = group }
         // Remove items.
         switch Keychain.locking({ SecItemDelete(query as CFDictionary) }) {
         case errSecSuccess, errSecItemNotFound: break
@@ -91,7 +91,7 @@ open class Keychain {
             SecurityConstants.attributes: kCFBooleanTrue!,
             SecurityConstants.matchLimit: kSecMatchLimitAll
         ]
-        query[SecurityConstants.accessGroup] = group
+        if let group = group { query[SecurityConstants.accessGroup] = group }
         // Fetch results.
         var result: AnyObject?
         switch Keychain.locking({ withUnsafeMutablePointer(to: &result) { SecItemCopyMatching(query as CFDictionary, $0) }}) {
