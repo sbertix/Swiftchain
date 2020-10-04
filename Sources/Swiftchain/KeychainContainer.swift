@@ -20,35 +20,6 @@ public extension Keychain {
         /// The identifier.
         public private(set) var key: String
 
-        /// Compute a base keychain query.
-        private var query: [CFString: Any] {
-            // Prepare the query for a generic password.
-            var query: [CFString: Any] = [SecurityConstants.class: kSecClassGenericPassword]
-            query[SecurityConstants.service] = keychain.service
-            if let group = keychain.group { query[SecurityConstants.accessGroup] = group }
-            query[SecurityConstants.synchronizable] = keychain.isSynchronizable ? kCFBooleanTrue : kCFBooleanFalse
-            // Identify the actual container.
-            query[SecurityConstants.account] = key
-            // Consider accessibility and authentication.
-            if !keychain.authentication.isEmpty {
-                var error: Unmanaged<CFError>?
-                query[SecurityConstants.control] = withUnsafeMutablePointer(to: &error) {
-                    SecAccessControlCreateWithFlags(nil,
-                                                    keychain.accessibility.rawValue,
-                                                    keychain.authentication.flags,
-                                                    $0)
-                }
-                // Crash on `Error`.
-                if let error = error?.takeUnretainedValue() {
-                    fatalError("Authentication flags raised an `Error`: \(error)")
-                }
-            } else {
-                query[SecurityConstants.accessible] = keychain.accessibility.rawValue
-            }
-            // Return dictionary.
-            return query
-        }
-
         /// Check whether it's empty or not.
         ///
         /// - note: A `Container` throwing an `Error` is considered empty.
@@ -71,20 +42,23 @@ public extension Keychain {
 
         // MARK: Insertion
 
-        /// Update the underlying item.
+        /// Clean the container and store a new item.
         ///
         /// - parameter value: Some valid element.
+        /// - note: If an `Error` is thrown during the process, the `container` would still be emptied.
         /// - throws: A `Keychain.Error` or `Swift.Error`.
         public func store<T>(_ value: T) throws {
             switch value {
             case let data as Data:
+                // Always empty the `Container`, before storing a new value.
+                try empty()
+
                 // Prepare the query.
-                var query: [CFString: Any] = self.query
-                query[SecurityConstants.valueData] = data
+                let constants: SecurityConstants = [.key, .value, .keychain, .accessibility, .authentication]
+                let query = try constants.query(for: self, with: data)
                 // Store results.
                 switch Keychain.locking({ SecItemAdd(query as CFDictionary, nil) }) {
                 case errSecSuccess: break
-                case errSecDuplicateItem: try update(value)
                 case let status: throw Error.status(status)
                 }
             default:
@@ -97,19 +71,6 @@ public extension Keychain {
                 }
                 // Store results.
                 try store(data)
-            }
-        }
-
-        /// Store `value` into the keychain, when `key` is found.
-        ///
-        /// - parameter value: Some valid element.
-        /// - throws: An instance of `Keychain.Error`.
-        private func update<T>(_ value: T) throws {
-            // Update attributes.
-            let updateDictionary = [SecurityConstants.valueData: value]
-            switch Keychain.locking({ SecItemUpdate(query as CFDictionary, updateDictionary as CFDictionary) }) {
-            case errSecSuccess: break
-            case let status: throw Error.status(status)
             }
         }
 
@@ -151,6 +112,9 @@ public extension Keychain {
         ///
         /// - throws: Some `Keychain.Error`.
         public func empty() throws {
+            // Prepare query.
+            let constants: SecurityConstants = [.key, .keychain]
+            let query = try constants.query(for: self)
             // Delete.
             switch Keychain.locking({ SecItemDelete(query as CFDictionary) }) {
             case errSecSuccess, errSecItemNotFound: break
@@ -187,9 +151,8 @@ public extension Keychain {
             }
 
             // Prepare the query.
-            var query = self.query
-            query[SecurityConstants.matchLimit] = kSecMatchLimitOne
-            query[SecurityConstants.returnData] = kCFBooleanTrue
+            let constants: SecurityConstants = [.key, .data, .one, .keychain]
+            let query = try constants.query(for: self)
             // Fetch results.
             var result: AnyObject?
             switch Keychain.locking({ SecItemCopyMatching(query as CFDictionary, &result) }) {
