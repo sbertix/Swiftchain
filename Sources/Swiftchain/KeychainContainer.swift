@@ -45,7 +45,6 @@ public extension Keychain {
         /// Store a new item, replacing a previous one if it exists.
         ///
         /// - parameter value: Some valid element.
-        /// - note: If an `Error` is thrown during the process, the `container` would still be emptied.
         /// - throws: A `Keychain.Error` or `Swift.Error`.
         public func store<T>(_ value: T) throws {
             switch value {
