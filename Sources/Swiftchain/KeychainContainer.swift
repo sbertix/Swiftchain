@@ -42,7 +42,7 @@ public extension Keychain {
 
         // MARK: Insertion
 
-        /// Clean the container and store a new item.
+        /// Store a new item, replacing a previous one if it exists.
         ///
         /// - parameter value: Some valid element.
         /// - note: If an `Error` is thrown during the process, the `container` would still be emptied.
@@ -50,15 +50,21 @@ public extension Keychain {
         public func store<T>(_ value: T) throws {
             switch value {
             case let data as Data:
-                // Always empty the `Container`, before storing a new value.
-                try empty()
-
                 // Prepare the query.
                 let constants: SecurityConstants = [.key, .value, .keychain, .accessibility, .authentication]
                 let query = try constants.query(for: self, with: data)
                 // Store results.
                 switch Keychain.locking({ SecItemAdd(query as CFDictionary, nil) }) {
                 case errSecSuccess: break
+                case errSecDuplicateItem:
+                    // Update attributes.
+                    let initialConstants: SecurityConstants = [.service, .group, .key]
+                    let initialQuery = try initialConstants.query(for: self, with: nil)
+                    let updateQuery = try SecurityConstants.value.query(for: self, with: data)
+                    switch Keychain.locking({ SecItemUpdate(initialQuery as CFDictionary, updateQuery as CFDictionary) }) {
+                    case errSecSuccess: break
+                    case let status: throw Error.status(status)
+                    }
                 case let status: throw Error.status(status)
                 }
             default:
