@@ -132,5 +132,15 @@ final class SwiftchainTests: XCTestCase {
         XCTAssert(try end.fetch(Int.self) == 2)
         XCTAssert(start.isEmpty)
     }
+
+    /// Test override.
+    func testOverride() throws {
+        try container.store(2)
+        XCTAssert(try container.fetch() == 2)
+        try container.store("test")
+        XCTAssert(try container.fetch() == "test")
+        XCTAssert((try container.keychain.keys()).count == 1)
+        XCTAssert(try container.keychain.containers().first?.fetch() == "test")
+    }
 }
 #endif
