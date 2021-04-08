@@ -31,21 +31,21 @@ public extension Keychain {
 
         /// Constraint to access an item with a passcode.
         @available(macOS 10.11, *)
-        static let devicePasscode = Authentication(rawValue: 1 << 0)
+        public static let devicePasscode = Authentication(rawValue: 1 << 0)
 
         /// Constraint to access an item with Touch ID for any enrolled fingers, or Face ID.
         ///
         /// Touch ID must be available and enrolled with at least one finger, or Face ID must be available and enrolled.
         /// The item is still accessible by Touch ID if fingers are added or removed, or by Face ID if the user is re-enrolled.
         @available(iOS 11.3, macOS 10.13.4, tvOS 11.3, watchOS 4.3, *)
-        static let biometryAny = Authentication(rawValue: 1 << 1)
+        public static let biometryAny = Authentication(rawValue: 1 << 1)
 
         /// Constraint to access an item with Touch ID for currently enrolled fingers, or from Face ID with the currently enrolled user.
         ///
         /// Touch ID must be available and enrolled with at least one finger, or Face ID available and enrolled.
         /// The item is invalidated if fingers are added or removed for Touch ID, or if the user re-enrolls for Face ID.
         @available(iOS 11.3, macOS 10.13.4, tvOS 11.3, watchOS 4.3, *)
-        static let biometryCurrentSet = Authentication(rawValue: 1 << 2)
+        public static let biometryCurrentSet = Authentication(rawValue: 1 << 2)
 
         /// Constraint to access an item with a watch.
         ///
@@ -54,14 +54,14 @@ public extension Keychain {
         @available(iOS, unavailable)
         @available(tvOS, unavailable)
         @available(watchOS, unavailable)
-        static let watch = Authentication(rawValue: 1 << 3)
+        public static let watch = Authentication(rawValue: 1 << 3)
 
         /// Constraint to access an item with either biometry or passcode.
         ///
         /// Biometry doesn’t have to be available or enrolled.
         /// The item is still accessible by Touch ID even if fingers are added or removed, or by Face ID if the user is re-enrolled.
         @available(macOS 10.11, *)
-        static var userPresence: Authentication {
+        public static var userPresence: Authentication {
             if #available(iOS 11.3, macOS 10.13.4, tvOS 11.3, watchOS 4.3, *) {
                 return [.biometryAny, .devicePasscode]
             } else {
